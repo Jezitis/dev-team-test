@@ -5,7 +5,9 @@
         <v-progress-circular indeterminate size="64"></v-progress-circular>
       </v-overlay>
       <v-col cols="3" v-for="person in persons" :key="person.Id">
-        <card :person="person" :loading="loading" />
+        <router-link :to="`edit/${person.Id}`">
+          <card :person="person" :loading="loading" />
+        </router-link>
       </v-col>
     </v-row>
   </v-container>
@@ -34,7 +36,7 @@ export default {
         );
         if (response.ok) {
           let result = await response.json();
-          if(result.length > 0) {
+          if (result.length > 0) {
             result.forEach((item) => this.persons.push(item));
           } else this.allLoaded = true;
         }
@@ -61,5 +63,3 @@ export default {
   },
 };
 </script>
-<style lang="scss">
-</style>
