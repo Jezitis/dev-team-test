@@ -7,33 +7,33 @@
       <v-col cols="6">
         <form>
           <v-text-field
-            v-model="name"
+            v-model="person.name"
             :error-messages="nameErrors"
             label="Name"
             required
-            @input="$v.name.$touch()"
-            @blur="$v.name.$touch()"
+            @input="$v.person.name.$touch()"
+            @blur="$v.person.name.$touch()"
             :disabled="!authorized"
           ></v-text-field>
           <v-text-field
-            v-model="title"
+            v-model="person.title"
             :error-messages="titleErrors"
             label="Title"
             required
-            @input="$v.title.$touch()"
-            @blur="$v.title.$touch()"
+            @input="$v.person.title.$touch()"
+            @blur="$v.person.title.$touch()"
             :disabled="!authorized"
           ></v-text-field>
           <v-combobox
-            v-model="tags"
+            v-model="person.tags"
             :items="availableTags"
             item-text="Name"
             deletable-chips
             label="Tags"
             multiple
             chips
-            @change="$v.tags.$touch()"
-            @blur="$v.tags.$touch()"
+            @change="$v.person.tags.$touch()"
+            @blur="$v.person.tags.$touch()"
             :disabled="!authorized"
           ></v-combobox>
           <v-btn class="mr-4" @click="submit" :disabled="!authorized">
@@ -47,20 +47,26 @@
 <script>
 import { validationMixin } from "vuelidate";
 import { required } from "vuelidate/lib/validators";
+import { auth } from "../firebase/config";
 export default {
   name: "EditCard",
   mixins: [validationMixin],
 
   validations: {
-    name: { required },
-    title: { required },
-    tags: { required },
+    person: {
+      name: { required },
+      title: { required },
+      tags: { required },
+    }
   },
 
   data: () => ({
-    name: "",
-    title: "",
-    tags: [],
+    token: null,
+    person: {
+      name: "",
+      title: "",
+      tags: [],
+    },
     availableTags: [
       {
         Name: "C++",
@@ -94,27 +100,38 @@ export default {
   computed: {
     selectErrors() {
       const errors = [];
-      if (!this.$v.tags.$dirty) return errors;
-      !this.$v.tags.required && errors.push("Tags are required");
+      if (!this.$v.person.tags.$dirty) return errors;
+      !this.$v.person.tags.required && errors.push("Tags are required");
       return errors;
     },
     nameErrors() {
       const errors = [];
-      if (!this.$v.name.$dirty) return errors;
-      !this.$v.name.required && errors.push("Name is required.");
+      if (!this.$v.person.name.$dirty) return errors;
+      !this.$v.person.name.required && errors.push("Name is required.");
       return errors;
     },
     titleErrors() {
       const errors = [];
-      if (!this.$v.title.$dirty) return errors;
-      !this.$v.title.required && errors.push("Title is required");
+      if (!this.$v.person.title.$dirty) return errors;
+      !this.$v.person.title.required && errors.push("Title is required");
       return errors;
     },
   },
 
   methods: {
-    submit() {
+    async submit() {
       this.$v.$touch();
+      await fetch(`https://api.in.dev-team.club/people/${this.$route.params.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json;charset=utf-8',
+          'X-Auth-Token': `${this.token}`
+        },
+        body: JSON.stringify(this.person)
+      });
+      // debugger
+      // let result = await response.json();
+      // alert(result.message);
     },
   },
   async beforeMount() {
@@ -125,9 +142,14 @@ export default {
       );
       if (response.ok) {
         let result = await response.json();
-        this.name = result.Name;
-        this.title = result.Title;
-        this.tags = result.Tags;
+        this.person.name = result.Name;
+        this.person.title = result.Title;
+        this.person.tags = result.Tags;
+      }
+      const user = auth.currentUser;
+      if (user !== null) {
+        this.token = await user.getIdToken();
+        this.authorized = true;
       }
     } catch (error) {
       console.log(error);
