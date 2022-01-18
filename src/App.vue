@@ -4,6 +4,7 @@
       <v-container>
         <v-row calss="ma-0" align="center">
           <v-btn
+            class="mr-2"
             color="primary"
             dark
             @click="$router.push('/')"
@@ -27,21 +28,23 @@
     </v-app-bar>
 
     <v-main>
-      <router-view />
+      <transition name="fade">
+        <router-view />
+      </transition>
     </v-main>
   </v-app>
 </template>
 
 <script>
 import { auth } from "./firebase/config";
-import { signOut } from "firebase/auth";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 export default {
   name: "App",
   data: () => ({
     user: null,
   }),
   methods: {
-    async logout() {
+    logout() {
       signOut(auth)
         .then(() => {
           this.user = null;
@@ -51,16 +54,19 @@ export default {
           alert(error);
         });
     },
-  },
-  async updated() {
-    try {
+    checkUser() {
       const user = auth.currentUser;
       if (user !== null) {
         this.user = user;
       }
-    } catch (error) {
-      alert(error);
     }
   },
+  mounted() {
+    onAuthStateChanged(auth, (user) => {
+      if (user !== null) {
+        this.user = user;
+      }
+    })
+  }
 };
 </script>

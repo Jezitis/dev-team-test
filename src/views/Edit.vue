@@ -1,8 +1,10 @@
 <template>
   <v-container class="fill-height ma-0">
     <v-row class="fill-height ma-0" align="center" justify="center">
-      <v-overlay :value="loading">
-        <v-progress-circular indeterminate size="64"></v-progress-circular>
+      <v-overlay :value="showMessage">
+        <v-progress-circular v-if="loading" indeterminate size="64"></v-progress-circular>
+        <v-alert type="success" v-if="!loading && success">Data updated!</v-alert>
+        <v-alert type="error" v-if="!loading && errorMessage">Oops! There is an error: {{errorMessage}}</v-alert>
       </v-overlay>
       <v-col cols="6">
         <form>
@@ -48,6 +50,7 @@
 import { validationMixin } from "vuelidate";
 import { required } from "vuelidate/lib/validators";
 import { auth } from "../firebase/config";
+import { onAuthStateChanged } from "firebase/auth";
 export default {
   name: "EditCard",
   mixins: [validationMixin],
@@ -95,6 +98,9 @@ export default {
     ],
     loading: false,
     authorized: false,
+    showMessage: false,
+    success: false,
+    errorMessage: null,
   }),
 
   computed: {
@@ -121,20 +127,39 @@ export default {
   methods: {
     async submit() {
       this.$v.$touch();
-      await fetch(`https://api.in.dev-team.club/people/${this.$route.params.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json;charset=utf-8',
-          'X-Auth-Token': `${this.token}`
-        },
-        body: JSON.stringify(this.person)
-      });
-      // debugger
-      // let result = await response.json();
-      // alert(result.message);
+      if(!this.$v.$invalid) {
+        this.showMessage = true;
+        this.loading = true;
+        try {
+          const response = await fetch(`https://api.in.dev-team.club/people/${this.$route.params.id}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json;charset=utf-8',
+              'X-Auth-Token': `${this.token}`
+            },
+            body: JSON.stringify(this.person)
+          });
+          if (response.ok) {
+            this.showMessage = true;
+            this.success = true;
+          }
+        } catch (error) {
+          this.showMessage = true;
+          this.errorMessage = error.message;
+        } finally {
+          this.loading = false;
+          setTimeout(() => {
+            this.showMessage = false;
+            this.errorMessage = null;
+            this.success = false;
+            this.$router.push("/");
+          }, 2000)
+        }
+      }
     },
   },
   async beforeMount() {
+    this.showMessage = true;
     this.loading = true;
     try {
       const response = await fetch(
@@ -146,15 +171,23 @@ export default {
         this.person.title = result.Title;
         this.person.tags = result.Tags;
       }
-      const user = auth.currentUser;
+      onAuthStateChanged(auth, async(user) => {
       if (user !== null) {
         this.token = await user.getIdToken();
         this.authorized = true;
       }
+    })
     } catch (error) {
-      console.log(error);
+      this.showMessage = true;
+      this.errorMessage = error.message;
+      setTimeout(() => {
+        this.showMessage = false;
+        this.errorMessage = null;
+      }, 2000)
     } finally {
       this.loading = false;
+      this.showMessage = false;
+      this.errorMessage = null;
     }
   },
 };

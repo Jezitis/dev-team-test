@@ -1,6 +1,9 @@
 <template>
   <v-container class="fill-height ma-0">
     <v-row class="fill-height ma-0" align="center" justify="center">
+      <v-overlay :value="showMessage">
+        <v-alert type="error">Oops! There is an error: {{errorMessage}}</v-alert>
+      </v-overlay>
       <v-card>
         <v-card-title>
           <span class="text-h5">Please login</span>
@@ -56,21 +59,27 @@ export default {
         email: "",
         password: "",
       },
+      showMessage: false,
+      errorMessage: null,
     };
   },
   methods: {
     async userLogin() {
       try {
-        const res = await signInWithEmailAndPassword(
+        await signInWithEmailAndPassword(
           auth,
           this.user.email,
           this.user.password
         );
-        console.log(res);
-      } catch (error) {
-        alert(error.message);
-      } finally {
         this.$router.push("/");
+      } catch (error) {
+          this.showMessage = true;
+          this.errorMessage = error.message;
+      } finally {
+        setTimeout(() => {
+          this.showMessage = false;
+          this.errorMessage = null;
+        }, 2000)
       }
     },
   },

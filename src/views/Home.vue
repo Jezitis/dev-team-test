@@ -3,6 +3,7 @@
     <v-row>
       <v-overlay :value="loading">
         <v-progress-circular indeterminate size="64"></v-progress-circular>
+        <v-alert type="error" v-if="errorMessage">Oops! There is an error: {{errorMessage}}</v-alert>
       </v-overlay>
       <v-col cols="3" v-for="person in persons" :key="person.Id">
         <router-link :to="`edit/${person.Id}`">
@@ -25,6 +26,7 @@ export default {
       loading: false,
       currentPage: 0,
       allLoaded: false,
+      errorMessage: null,
     };
   },
   methods: {
@@ -41,7 +43,10 @@ export default {
           } else this.allLoaded = true;
         }
       } catch (error) {
-        console.log(error);
+        this.errorMessage = error.message;
+        setTimeout(() => {
+          this.errorMessage = null;
+        }, 2000)
       } finally {
         this.loading = false;
         this.currentPage++;

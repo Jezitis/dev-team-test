@@ -1,6 +1,10 @@
 <template>
   <v-container class="fill-height ma-0">
     <v-row class="fill-height ma-0" align="center" justify="center">
+      <v-overlay :value="showMessage">
+        <v-alert type="success" v-if="!errorMessage">Registration successfull!</v-alert>
+        <v-alert type="error" v-else>Oops! There is an error: {{errorMessage}}</v-alert>
+      </v-overlay>
       <v-card>
         <v-card-title>
           <span class="text-h5">Fill the information</span>
@@ -9,7 +13,11 @@
           <v-container>
             <v-row>
               <v-col cols="12">
-                <v-text-field label="Email*" required v-model="user.email"></v-text-field>
+                <v-text-field
+                  label="Email*"
+                  required
+                  v-model="user.email"
+                ></v-text-field>
               </v-col>
               <v-col cols="12">
                 <v-text-field
@@ -52,23 +60,30 @@ export default {
       user: {
         email: '',
         password: ''
-      }
+      },
+      showMessage: false,
+      errorMessage: null,
     };
   },
   methods: {
     async userRegistration() {
       try {
         const res = await createUserWithEmailAndPassword(auth, this.user.email, this.user.password);
-        console.log(res);
         if(res.user) {
           await updateProfile(auth.currentUser, {
             displayName: this.user.email
           })
+          this.showMessage = true;
         }
       } catch (error) {
-         alert(error.message);
+         this.showMessage = true;
+         this.errorMessage = error.message;
       } finally {
-        this.$router.push('/login')
+        setTimeout(() => {
+          this.showMessage = false;
+          this.errorMessage = null;
+          this.$router.push('/login');
+        }, 2000)
       }
     }
   }
